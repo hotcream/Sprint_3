@@ -1,135 +1,114 @@
-import io.restassured.RestAssured;
+import api.client.CourierService;
+import api.model.RegisterCourier;
 import io.restassured.response.Response;
-import org.apache.commons.lang3.RandomStringUtils;
-import static io.restassured.RestAssured.*;
-
 import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
+import util.DataGenerator;
 import java.util.ArrayList;
-import java.util.Objects;
+import java.util.List;
+import io.qameta.allure.junit4.DisplayName;
 
 import static org.hamcrest.Matchers.equalTo;
-import static resttests.ScooterRegisterCourier.registerNewCourierAndReturnLoginPassword;
 
 public class CreateCourierTest {
-    private String id;
-    private String login;
-    private String password;
+    List<RegisterCourier> createdCouriers = new ArrayList<>();
 
-    public void setId(String id) {
-        this.id = id;
-    }
-    public void setLogin(String login) {
-        this.login = login;
-    }
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    @Before
-    public void setUp() {
-        setId("");
-        setLogin("");
-        setPassword("");
-        RestAssured.baseURI = "https://qa-scooter.praktikum-services.ru/";
+    private Response register(RegisterCourier data) {
+        var response = CourierService.register(data);
+        if (response.statusCode() == 201) {
+            createdCouriers.add(data);
+        }
+        return response;
     }
 
     @After
-    public void deleteData() {
-        if ((!Objects.equals(login, "")) && (!Objects.equals(password, ""))) {
-            String registerRequestBody = "{\"login\":\"" + login + "\","
-                    + "\"password\":\"" + password + "\"}";
-            Response response = given()
-                    .header("Content-type", "application/json")
-                    .and()
-                    .body(registerRequestBody)
-                    .when()
-                    .post("/api/v1/courier/login");
-            setId(Integer.toString(response.then().extract().path("id")));
-
-            given()
-                    .delete("/api/v1/courier/" + id);
-            System.out.println("kek " + id + " delete");
+    public void after() {
+        for (var data : createdCouriers) {
+            int id = CourierService.login(data.getLogin(), data.getPassword())
+                    .then().assertThat()
+                    .statusCode(200)
+                    .extract().path("id");
+            CourierService.delete(id)
+                    .then().assertThat()
+                    .statusCode(200)
+                    .body("ok", equalTo(true));
         }
     }
 
     @Test
-    public void createCourierPositive() {
-
-        String courierLogin = RandomStringUtils.randomAlphabetic(10);
-        String courierPassword = RandomStringUtils.randomAlphabetic(10);
-        String courierFirstName = RandomStringUtils.randomAlphabetic(10);
-        setLogin(courierLogin);
-        setPassword(courierPassword);
-        String registerRequestBody = "{\"login\":\"" + courierLogin + "\","
-                + "\"password\":\"" + courierPassword + "\","
-                + "\"firstName\":\"" + courierFirstName + "\"}";
-
-        Response response =  given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(registerRequestBody)
-                .when()
-                .post("/api/v1/courier");
-        response.then().assertThat().body("ok",equalTo(true))
-                .and()
-                .statusCode(201);
+    @DisplayName("Создание курьера")
+    public void shouldCreateCourier() {
+        register(DataGenerator.generateRegisterCourier())
+                .then().assertThat()
+                .statusCode(201)
+                .body("ok", equalTo(true));
     }
 
     @Test
-    public void createCourierWithExistingLogin() {
+    @DisplayName("Создание курьера без имени")
+    public void shouldCreateCourierWithoutFirstName() {
+        var data = DataGenerator.generateRegisterCourier();
+        data.setFirstName(null);
 
-        ArrayList<String> loginPass = registerNewCourierAndReturnLoginPassword();
-        String registerRequestBody = "{\"login\":\"" + loginPass.get(0) + "\","
-                + "\"password\":\"" + loginPass.get(1) + "\","
-                + "\"firstName\":\"" + "name" + "\"}";
-
-        Response response =  given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(registerRequestBody)
-                .when()
-                .post("/api/v1/courier");
-
-        response.then().assertThat().body("message",equalTo("Этот логин уже используется. Попробуйте другой."))
-                .and()
-                .statusCode(409);
+        register(data)
+                .then().assertThat()
+                .statusCode(201)
+                .body("ok", equalTo(true));
     }
 
     @Test
-    public void createCourierWithoutPassword() {
-        String courierLogin = RandomStringUtils.randomAlphabetic(10);
-        String courierFirstName = RandomStringUtils.randomAlphabetic(10);
-        String registerRequestBody = "{\"login\":\"" + courierLogin + "\","
-                + "\"firstName\":\"" + courierFirstName + "\"}";
+    @DisplayName("Создание курьера без логина")
+    public void shouldNotCreateCourierWithoutLogin() {
+        var data = DataGenerator.generateRegisterCourier();
+        data.setLogin(null);
 
-        Response response = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(registerRequestBody)
-                .when()
-                .post("/api/v1/courier");
-        response.then().assertThat().body("message", equalTo("Недостаточно данных для создания учетной записи"))
-                .and()
-                .statusCode(400);
+        register(data)
+                .then().assertThat()
+                .statusCode(400)
+                .body("message", equalTo("Недостаточно данных для создания учетной записи"));
     }
 
     @Test
-    public void createCourierWithoutLogin() {
-        String courierPassword = RandomStringUtils.randomAlphabetic(10);
-        String courierFirstName = RandomStringUtils.randomAlphabetic(10);
-        String registerRequestBody = "{\"password\":\"" + courierPassword + "\","
-                + "\"firstName\":\"" + courierFirstName + "\"}";
+    @DisplayName("Создание курьера без пароля")
+    public void shouldNotCreateCourierWithoutPassword() {
+        var data = DataGenerator.generateRegisterCourier();
+        data.setPassword(null);
 
-        Response response = given()
-                .header("Content-type", "application/json")
-                .and()
-                .body(registerRequestBody)
-                .when()
-                .post("/api/v1/courier");
-        response.then().assertThat().body("message", equalTo("Недостаточно данных для создания учетной записи"))
-                .and()
-                .statusCode(400);
+        register(data)
+                .then().assertThat()
+                .statusCode(400)
+                .body("message", equalTo("Недостаточно данных для создания учетной записи"));
+    }
+
+    @Test
+    @DisplayName("Создание двух одинаковых курьеров")
+    public void shouldNotCreateTwoEqualsCouriers() {
+        var data = DataGenerator.generateRegisterCourier();
+        register(data)
+                .then().assertThat()
+                .statusCode(201)
+                .body("ok", equalTo(true));
+        register(data)
+                .then().assertThat()
+                .statusCode(409)
+                .body("message", equalTo("Этот логин уже используется"));
+    }
+
+    @Test
+    @DisplayName("Создание курьера с существующим логином")
+    public void shouldNotCreateCourierWithAlreadyExistingLogin() {
+        var data1 = DataGenerator.generateRegisterCourier();
+        register(data1)
+                .then().assertThat()
+                .statusCode(201)
+                .body("ok", equalTo(true));
+
+
+        var data2 = DataGenerator.generateRegisterCourier();
+        data2.setLogin(data1.getLogin());
+        register(data2)
+                .then().assertThat()
+                .statusCode(409)
+                .body("message", equalTo("Этот логин уже используется"));
     }
 }
