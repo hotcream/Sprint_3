@@ -13,12 +13,12 @@ import static org.hamcrest.Matchers.equalTo;
 public class LoginCourierTest {
 
     RegisterCourier courier;
-
+    CourierService courierService = new CourierService();
 
     @Before
     public void before() {
         courier = DataGenerator.generateRegisterCourier();
-        CourierService.register(courier)
+        courierService.register(courier)
                 .then().assertThat()
                 .statusCode(201);
     }
@@ -26,11 +26,11 @@ public class LoginCourierTest {
 
     @After
     public void after() {
-        int id = CourierService.login(courier.getLogin(), courier.getPassword())
+        int id = courierService.login(courier.getLogin(), courier.getPassword())
                 .then().assertThat()
                 .statusCode(200)
                 .extract().path("id");
-        CourierService.delete(id)
+        courierService.delete(id)
                 .then().assertThat()
                 .statusCode(200)
                 .body("ok", equalTo(true));
@@ -39,7 +39,7 @@ public class LoginCourierTest {
     @Test
     @DisplayName("Авторизация курьера")
     public void shouldCourierLogin() {
-        CourierService.login(courier.getLogin(), courier.getPassword())
+        courierService.login(courier.getLogin(), courier.getPassword())
                 .then().assertThat()
                 .statusCode(200)
                 .body("id", any(Integer.class));
@@ -48,7 +48,7 @@ public class LoginCourierTest {
     @Test
     @DisplayName("Авторизация курьера без логина")
     public void shouldNotCourierLoginWithoutLogin() {
-        CourierService.login(null, courier.getPassword())
+        courierService.login(null, courier.getPassword())
                 .then().assertThat()
                 .statusCode(400)
                 .body("message", equalTo("Недостаточно данных для входа"));
@@ -57,7 +57,7 @@ public class LoginCourierTest {
     @Test
     @DisplayName("Авторизация курьера без пароля")
     public void shouldNotCourierLoginWithoutPassword() {
-        CourierService.login(courier.getLogin(), null)
+        courierService.login(courier.getLogin(), null)
                 .then().assertThat()
                 .statusCode(400)
                 .body("message", equalTo("Недостаточно данных для входа"));
@@ -66,7 +66,7 @@ public class LoginCourierTest {
     @Test
     @DisplayName("Авторизация курьера без пароля и логина")
     public void shouldNotCourierLoginWithoutLoginAndPassword() {
-        CourierService.login(null, null)
+        courierService.login(null, null)
                 .then().assertThat()
                 .statusCode(400)
                 .body("message", equalTo("Недостаточно данных для входа"));
@@ -75,7 +75,7 @@ public class LoginCourierTest {
     @Test
     @DisplayName("Авторизация курьера с неправильным паролем")
     public void shouldNotCourierLoginWithIncorrectPassword() {
-        CourierService.login(courier.getLogin(), RandomStringUtils.randomAlphabetic(10))
+        courierService.login(courier.getLogin(), RandomStringUtils.randomAlphabetic(10))
                 .then().assertThat()
                 .statusCode(404)
                 .body("message", equalTo("Учетная запись не найдена"));
@@ -84,7 +84,7 @@ public class LoginCourierTest {
     @Test
     @DisplayName("Авторизация курьера с неправильным логином")
     public void shouldNotCourierLoginWithIncorrectLogin() {
-        CourierService.login(RandomStringUtils.randomAlphabetic(10), courier.getPassword())
+        courierService.login(RandomStringUtils.randomAlphabetic(10), courier.getPassword())
                 .then().assertThat()
                 .statusCode(404)
                 .body("message", equalTo("Учетная запись не найдена"));
@@ -93,7 +93,7 @@ public class LoginCourierTest {
     @Test
     @DisplayName("Авторизация незарегистрированного курьера")
     public void shouldNotUnregisteredCourierLogin() {
-        CourierService.login(DataGenerator.generateLoginCourier())
+        courierService.login(DataGenerator.generateLoginCourier())
                 .then().assertThat()
                 .statusCode(404)
                 .body("message", equalTo("Учетная запись не найдена"));

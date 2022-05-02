@@ -14,7 +14,8 @@ public class CreateCourierTest {
     List<RegisterCourier> createdCouriers = new ArrayList<>();
 
     private Response register(RegisterCourier data) {
-        var response = CourierService.register(data);
+        CourierService courierService = new CourierService();
+        var response = courierService.register(data);
         if (response.statusCode() == 201) {
             createdCouriers.add(data);
         }
@@ -23,12 +24,13 @@ public class CreateCourierTest {
 
     @After
     public void after() {
+        CourierService courierService = new CourierService();
         for (var data : createdCouriers) {
-            int id = CourierService.login(data.getLogin(), data.getPassword())
+            int id = courierService.login(data.getLogin(), data.getPassword())
                     .then().assertThat()
                     .statusCode(200)
                     .extract().path("id");
-            CourierService.delete(id)
+            courierService.delete(id)
                     .then().assertThat()
                     .statusCode(200)
                     .body("ok", equalTo(true));

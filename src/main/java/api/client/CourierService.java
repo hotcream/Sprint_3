@@ -10,29 +10,29 @@ import static io.restassured.RestAssured.given;
 
 public class CourierService {
 
-    public static Response register(RegisterCourier registerCourier) {
+    public Response register(RegisterCourier registerCourier) {
         return given()
                 .contentType(ContentType.JSON)
                 .body(registerCourier)
                 .post("https://qa-scooter.praktikum-services.ru/api/v1/courier");
     }
 
-    public static Response login(String login, String password) {
+    public Response login(String login, String password) {
         return login(new LoginCourier(login, password));
     }
 
-    public static Response login(LoginCourier loginCourier) {
+    public Response login(LoginCourier loginCourier) {
         return given()
                 .contentType(ContentType.JSON)
                 .body(loginCourier)
                 .post("https://qa-scooter.praktikum-services.ru/api/v1/courier/login");
     }
 
-    public static Response delete(int id) {
+    public Response delete(int id) {
         return given()
                 .contentType(ContentType.JSON)
                 .body(Map.of("id", id))
                 .delete("https://qa-scooter.praktikum-services.ru/api/v1/courier/{id}", id);
     }
 
-} 
+}
